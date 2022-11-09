@@ -8,6 +8,7 @@ import gymnasium as gym
 from distutils.util import strtobool
 from torch.utils.tensorboard import SummaryWriter
 
+
 def parse_arguments():
     """Parsing the command line arguments"""
     parser = argparse.ArgumentParser()
@@ -71,8 +72,22 @@ def parse_arguments():
         default=None,
         help="Name of the Weights&Biases entity (person or team)",
     )
+    parser.add_argument(
+        "--env_num",
+        type=int,
+        default=4,
+        help="The number of environments to be run in paralell",
+    )
     return parser.parse_args()
 
+def make_env(gym_id, seed):
+    def thunk():
+        env = gym.make(gym_id)
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+        env.action_space.seed(seed)
+        env.observation_space.seed(seed)
+        return env
+    return thunk
 
 if __name__ == "__main__":
     """Main entrypoint of application"""
@@ -106,20 +121,20 @@ if __name__ == "__main__":
 
     device = torch.device(args.device)
 
-    def make_gym(gym_id):
-        def thunk():
-            env = gym.make(gym_id)
-            env = gym.wrappers.RecordEpisodeStatistics(env)
-            return env
-        return thunk
-
-    envs = gym.vector.SyncVectorEnv([make_gym(args.env_id)])
+    envs = gym.vector.SyncVectorEnv(
+        [make_env(args.env_id, args.seed + i) for i in range(args.env_num)]
+    )
     observation = envs.reset()
     for i in range(200):
         action = envs.action_space.sample()
         observation, reward, terminated, truncated, info = envs.step(action)
-
         if "final_info" in info.keys():
-            print(f"{i} Episodic return: {info['final_info'][0]['episode']['r']}")
-
+            print(f"{i} Episodic return")
+            for j, r in enumerate(info["final_info"]):
+                if r is not None:
+                    print(f"\tEnv[{j}] return: {r['episode']['r']}")
     envs.close()
+
+    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "Only discrete action spaces supported!"
+    print(f"{args.env_id} single action_space: {envs.single_action_space}")
+    print(f"{args.env_id} single observation_space: {envs.single_observation_space}")
