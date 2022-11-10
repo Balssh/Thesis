@@ -3,8 +3,11 @@ import argparse
 import time
 import random
 import torch
+import torch.nn as nn
+import torch.optim as optim
 import numpy as np
 import gymnasium as gym
+from torch.distributions.categorical import Categorical
 from distutils.util import strtobool
 from torch.utils.tensorboard import SummaryWriter
 
@@ -80,14 +83,51 @@ def parse_arguments():
     )
     return parser.parse_args()
 
+
 def make_env(gym_id, seed):
+    """Helper function for making multiple environments"""
+
     def thunk():
         env = gym.make(gym_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
         return env
+
     return thunk
+
+
+def init_layer(layer, std=np.sqrt(2), bias_const=0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+
+    return layer
+
+
+class Policy(nn.Module):
+    def __init__(self, envs) -> None:
+        super(Policy, self).__init__()
+
+        self.critic = nn.Sequential(
+            init_layer(
+                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
+            ),
+            nn.Tanh(),
+            init_layer(nn.Linear(64, 64)),
+            nn.Tanh(),
+            init_layer(nn.Linear(64, 1), std=1.1),
+        )
+
+        self.actor = nn.Sequential(
+            init_layer(
+                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
+            ),
+            nn.Tanh(),
+            init_layer(nn.Linear(64, 64)),
+            nn.Tanh(),
+            init_layer(nn.Linear(64, envs.single_action_space.n), std=0.01),
+        )
+
 
 if __name__ == "__main__":
     """Main entrypoint of application"""
@@ -124,17 +164,23 @@ if __name__ == "__main__":
     envs = gym.vector.SyncVectorEnv(
         [make_env(args.env_id, args.seed + i) for i in range(args.env_num)]
     )
-    observation = envs.reset()
-    for i in range(200):
-        action = envs.action_space.sample()
-        observation, reward, terminated, truncated, info = envs.step(action)
-        if "final_info" in info.keys():
-            print(f"{i} Episodic return")
-            for j, r in enumerate(info["final_info"]):
-                if r is not None:
-                    print(f"\tEnv[{j}] return: {r['episode']['r']}")
-    envs.close()
+    # observation = envs.reset()
+    # for i in range(200):
+    #     action = envs.action_space.sample()
+    #     observation, reward, terminated, truncated, info = envs.step(action)
+    #     if "final_info" in info.keys():
+    #         print(f"{i} Episodic return")
+    #         for j, r in enumerate(info["final_info"]):
+    #             if r is not None:
+    #                 print(f"\tEnv[{j}] return: {r['episode']['r']}")
+    # envs.close()
 
-    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "Only discrete action spaces supported!"
+    assert isinstance(
+        envs.single_action_space, gym.spaces.Discrete
+    ), "Only discrete action spaces supported!"
     print(f"{args.env_id} single action_space: {envs.single_action_space}")
     print(f"{args.env_id} single observation_space: {envs.single_observation_space}")
+
+    policy = Policy(envs).to(device)
+    print(policy)
+    optimizer = optim.Adam(policy.parameters(), lr=args.learning_rate, eps=1e-05)
