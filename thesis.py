@@ -1,14 +1,15 @@
-import os
 import argparse
-import time
+import os
 import random
+import time
+from distutils.util import strtobool
+
+import gymnasium as gym
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-import gymnasium as gym
 from torch.distributions.categorical import Categorical
-from distutils.util import strtobool
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -81,7 +82,24 @@ def parse_arguments():
         default=4,
         help="The number of environments to be run in paralell",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--num_steps",
+        type=int,
+        default=64,
+        help="The number of steps in an episode",
+    )
+    parser.add_argument(
+        "--anneal-lr",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        nargs="?",
+        const=True,
+        help="(Un)Set if the learning rate will be annealed",
+    )
+    args = parser.parse_args()
+    args.batch_size = args.env_num * args.num_steps
+
+    return args
 
 
 def make_env(gym_id, seed):
@@ -126,6 +144,21 @@ class Policy(nn.Module):
             init_layer(nn.Linear(64, 64)),
             nn.Tanh(),
             init_layer(nn.Linear(64, envs.single_action_space.n), std=0.01),
+        )
+
+    def get_value(self, x):
+        return self.critic(x)
+
+    def get_action_and_value(self, x, action=None):
+        logits = self.actor(x)
+        probabilities = Categorical(logits=logits)
+        if action == None:
+            action = probabilities.sample()
+        return (
+            action,
+            probabilities.log_prob(action),
+            probabilities.entropy(),
+            self.critic(x),
         )
 
 
@@ -184,3 +217,27 @@ if __name__ == "__main__":
     policy = Policy(envs).to(device)
     print(policy)
     optimizer = optim.Adam(policy.parameters(), lr=args.learning_rate, eps=1e-05)
+
+    observations = torch.zeros(
+        (args.num_steps, args.env_num) + envs.single_observation_space.shape
+    ).to(device)
+    actions = torch.zeros(
+        (args.num_steps, args.env_num) + envs.single_action_space.shape
+    ).to(device)
+    logprobs = torch.zeros((args.num_steps, args.env_num)).to(device)
+    rewards = torch.zeros((args.num_steps, args.env_num)).to(device)
+    terminateds = torch.zeros((args.num_steps, args.env_num)).to(device)
+    truncateds = torch.zeros((args.num_steps, args.env_num)).to(device)
+    values = torch.zeros((args.num_steps, args.env_num)).to(device)
+
+    global_step = 0
+    start_time = time.time()
+    next_observations = torch.Tensor(envs.reset()[0]).to(device)
+    next_terminateds = torch.zeros(args.env_num).to(device)
+    num_updates = args.timesteps // args.batch_size
+
+    # print(num_updates)
+    # print(f"Next observations shape {next_observations.shape}")
+    # print(f"Policy get_value(next_observations) {policy.get_value(next_observations)}")
+    # print(f"Policy get_value(next_observations).shape {policy.get_value(next_observations).shape}")
+    # print(f"Policy get_action_and_value(next_observations) {policy.get_action_and_value(next_observations)}")
