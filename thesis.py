@@ -116,8 +116,21 @@ def parse_arguments():
         default=0.95,
         help="The lambda factor used in GAE",
     )
+    parser.add_argument(
+        "--minibatch_num",
+        type=int,
+        default=4,
+        help="The number of minibatches",
+    )
+    parser.add_argument(
+        "--epoch_update",
+        type=int,
+        default=4,
+        help="The number of epochs between updating the policy",
+    )
     args = parser.parse_args()
     args.batch_size = args.env_num * args.num_steps
+    args.minibatch_size = int(args.batch_size // args.minibatch_num)
 
     return args
 
@@ -266,7 +279,7 @@ if __name__ == "__main__":
         if args.anneal_lr:
             frac = 1.0 - (update - 1) / num_updates
             new_lr = frac * args.learning_rate
-            optimizer.param_groups[0]['lr'] = new_lr
+            optimizer.param_groups[0]["lr"] = new_lr
 
         for step in range(0, args.num_steps):
             global_step += 1 * args.env_num
@@ -274,13 +287,17 @@ if __name__ == "__main__":
             terminateds[step] = next_terminateds
 
             with torch.no_grad():
-                action, logprob, _, value = policy.get_action_and_value(next_observations)
+                action, logprob, _, value = policy.get_action_and_value(
+                    next_observations
+                )
                 values[step] = value.flatten()
 
             actions[step] = action
             logprobs[step] = logprob
 
-            next_observation, reward, terminated, truncated, info = envs.step(action.cpu().numpy())
+            next_observation, reward, terminated, truncated, info = envs.step(
+                action.cpu().numpy()
+            )
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_observation = torch.Tensor(next_observation).to(device)
             terminated = torch.Tensor(terminated).to(device)
@@ -289,8 +306,12 @@ if __name__ == "__main__":
             if "final_info" in info.keys():
                 for j, r in enumerate(info["final_info"]):
                     if r is not None:
-                        writer.add_scalar("charts/episodic_return", r['episode']['r'], global_step)
-                        writer.add_scalar("charts/episodic_length", r['episode']['l'], global_step)
+                        writer.add_scalar(
+                            "charts/episodic_return", r["episode"]["r"], global_step
+                        )
+                        writer.add_scalar(
+                            "charts/episodic_length", r["episode"]["l"], global_step
+                        )
                         break
 
             with torch.no_grad():
@@ -305,8 +326,14 @@ if __name__ == "__main__":
                         else:
                             next_nonterminal = 1 - terminateds[t + 1]
                             next_values = values[t + 1]
-                        delta = rewards[t] + args.gamma * next_values * next_nonterminal - values[t]
-                        advantages[t] = last_gae_lambda = delta + args.gamma * args.gae_lambda * last_gae_lambda
+                        delta = (
+                            rewards[t]
+                            + args.gamma * next_values * next_nonterminal
+                            - values[t]
+                        )
+                        advantages[t] = last_gae_lambda = (
+                            delta + args.gamma * args.gae_lambda * last_gae_lambda
+                        )
                     returns = advantages + values
                 else:
                     returns = torch.zeros_like(rewards).to(device)
@@ -317,13 +344,30 @@ if __name__ == "__main__":
                         else:
                             next_nonterminal = 1 - terminateds[t + 1]
                             next_return = returns[t + 1]
-                        returns[t] = rewards[t] + args.gamma * next_nonterminal * next_return
+                        returns[t] = (
+                            rewards[t] + args.gamma * next_nonterminal * next_return
+                        )
                     advantages = returns - values
 
-            batch_observations = observations.reshape((-1, ) + envs.single_observation_space.shape)
-            batch_actions = actions.reshape((-1, ) + envs.single_action_space.shape)
+            batch_observations = observations.reshape(
+                (-1,) + envs.single_observation_space.shape
+            )
+            batch_actions = actions.reshape((-1,) + envs.single_action_space.shape)
             batch_logprobs = logprobs.reshape(-1)
             batch_returns = returns.reshape(-1)
             batch_values = returns.reshape(-1)
             batch_advantages = advantages.reshape(-1)
+
+            batch_indices = np.arrange(args.batch_size)
+            for epoch in range(args.epoch_update):
+                np.random.shuffle(batch_indices)
+
+                for start in range(0, args.batch_size, args.minibatch_size):
+                    end = start + args.minibatch_size
+                    minibatch_indices = batch_indices[start:end]
+                    print("start end indices", start, end)
+
+                    _, new_logprob, entropy, new_values = policy.get_action_and_value(batch_observations[minibatch_indices], batch_actions.long()[minibatch_indices])
+                    log_ratio = new_logprob - logprob[minibatch_indices]
+                    ratio = log_ratio.exp()
 
