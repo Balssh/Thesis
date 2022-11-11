@@ -96,6 +96,26 @@ def parse_arguments():
         const=True,
         help="(Un)Set if the learning rate will be annealed",
     )
+    parser.add_argument(
+        "--gae",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        nargs="?",
+        const=True,
+        help="If true we will use generalized advantage estimation",
+    )
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.99,
+        help="The gamma discount factor used in GAE",
+    )
+    parser.add_argument(
+        "--gae_lambda",
+        type=float,
+        default=0.95,
+        help="The lambda factor used in GAE",
+    )
     args = parser.parse_args()
     args.batch_size = args.env_num * args.num_steps
 
@@ -241,3 +261,69 @@ if __name__ == "__main__":
     # print(f"Policy get_value(next_observations) {policy.get_value(next_observations)}")
     # print(f"Policy get_value(next_observations).shape {policy.get_value(next_observations).shape}")
     # print(f"Policy get_action_and_value(next_observations) {policy.get_action_and_value(next_observations)}")
+
+    for update in range(num_updates + 1):
+        if args.anneal_lr:
+            frac = 1.0 - (update - 1) / num_updates
+            new_lr = frac * args.learning_rate
+            optimizer.param_groups[0]['lr'] = new_lr
+
+        for step in range(0, args.num_steps):
+            global_step += 1 * args.env_num
+            observations[step] = next_observations
+            terminateds[step] = next_terminateds
+
+            with torch.no_grad():
+                action, logprob, _, value = policy.get_action_and_value(next_observations)
+                values[step] = value.flatten()
+
+            actions[step] = action
+            logprobs[step] = logprob
+
+            next_observation, reward, terminated, truncated, info = envs.step(action.cpu().numpy())
+            rewards[step] = torch.tensor(reward).to(device).view(-1)
+            next_observation = torch.Tensor(next_observation).to(device)
+            terminated = torch.Tensor(terminated).to(device)
+            truncated = torch.Tensor(truncated).to(device)
+
+            if "final_info" in info.keys():
+                for j, r in enumerate(info["final_info"]):
+                    if r is not None:
+                        writer.add_scalar("charts/episodic_return", r['episode']['r'], global_step)
+                        writer.add_scalar("charts/episodic_length", r['episode']['l'], global_step)
+                        break
+
+            with torch.no_grad():
+                next_value = policy.get_value(next_observation).reshape(1, -1)
+                if args.gae:
+                    advantages = torch.zeros_like(rewards).to(device)
+                    last_gae_lambda = 0
+                    for t in reversed(range(args.num_steps)):
+                        if t == args.num_steps - 1:
+                            next_nonterminal = 1 - terminated
+                            next_values = next_value
+                        else:
+                            next_nonterminal = 1 - terminateds[t + 1]
+                            next_values = values[t + 1]
+                        delta = rewards[t] + args.gamma * next_values * next_nonterminal - values[t]
+                        advantages[t] = last_gae_lambda = delta + args.gamma * args.gae_lambda * last_gae_lambda
+                    returns = advantages + values
+                else:
+                    returns = torch.zeros_like(rewards).to(device)
+                    for t in reversed(range(args.num_steps)):
+                        if t == args.num_steps - 1:
+                            next_nonterminal = 1 - terminated
+                            next_return = next_value
+                        else:
+                            next_nonterminal = 1 - terminateds[t + 1]
+                            next_return = returns[t + 1]
+                        returns[t] = rewards[t] + args.gamma * next_nonterminal * next_return
+                    advantages = returns - values
+
+            batch_observations = observations.reshape((-1, ) + envs.single_observation_space.shape)
+            batch_actions = actions.reshape((-1, ) + envs.single_action_space.shape)
+            batch_logprobs = logprobs.reshape(-1)
+            batch_returns = returns.reshape(-1)
+            batch_values = returns.reshape(-1)
+            batch_advantages = advantages.reshape(-1)
+
