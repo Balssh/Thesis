@@ -23,7 +23,7 @@ HYPER_PARAMS = {
     "GAE_LAMBDA": 0.95,
     "UPDATE_EPOCHS": 4,
     "CLIPPING_COEFFICIENT": 0.2,
-    "ENTROPY_COEFICIENT": 0.5,
+    "ENTROPY_COEFFICIENT": 0.5,
     "VALUE_LOSS_COEFFICIENT": 0.5,
     "MAX_GRADIENT_NORM": 0.5,
 }
@@ -233,11 +233,11 @@ if __name__ == "__main__":
                     new_value - batch_returns[minibatch_indices]
                 ) ** 2
                 clipped_value = batch_values[minibatch_indices] + torch.clamp(
-                    new_value,
+                    new_value - batch_values[minibatch_indices],
                     -HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                     HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                 )
-                clipped_value_loss = (new_value - batch_returns[minibatch_indices]) ** 2
+                clipped_value_loss = (clipped_value - batch_returns[minibatch_indices]) ** 2
                 value_loss = torch.max(unclipped_value_loss, clipped_value_loss).mean()
                 entropy_loss = entropy.mean()
 
@@ -245,7 +245,7 @@ if __name__ == "__main__":
                 loss = (
                     policy_loss
                     + HYPER_PARAMS["VALUE_LOSS_COEFFICIENT"] * value_loss
-                    - HYPER_PARAMS["ENTROPY_COEFICIENT"] * entropy_loss
+                    - HYPER_PARAMS["ENTROPY_COEFFICIENT"] * entropy_loss
                 )
 
                 # Do a gradient descent
