@@ -78,13 +78,13 @@ def parse_arguments():
         help="Name of the Weights&Biases entity (person or team)",
     )
     parser.add_argument(
-        "--env_num",
+        "--env-num",
         type=int,
         default=4,
         help="The number of environments to be run in paralell",
     )
     parser.add_argument(
-        "--num_steps",
+        "--num-steps",
         type=int,
         default=128,
         help="The number of steps in an episode",
