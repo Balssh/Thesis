@@ -14,10 +14,10 @@ HYPER_PARAMS = {
     "EXPERIMENT_NAME": "homemade_ppo",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cuda",
+    "DEVICE": "cpu",
     "LEARNING_RATE": 2.5e-04,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 5000,
+    "TIMESTEPS": 25000,
     "MINIBATCH_NUM": 4,
     "GAE_GAMMA": 0.99,
     "GAE_LAMBDA": 0.95,
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     updates = HYPER_PARAMS["TIMESTEPS"] // HYPER_PARAMS["ENV_TIMESTEPS"]
     minibatch_size = HYPER_PARAMS["ENV_TIMESTEPS"] // HYPER_PARAMS["MINIBATCH_NUM"]
-    obsertation = torch.Tensor(env.reset()[0]).to(device)
+    observation = torch.Tensor(env.reset()[0]).to(device)
     terminated = torch.zeros(1).to(device)
     global_step = 0
 
@@ -131,13 +131,13 @@ if __name__ == "__main__":
         # Rollout phase (collecting data about the env, following the last policy)
         for step in range(0, HYPER_PARAMS["ENV_TIMESTEPS"]):
             global_step += 1
-            observations[step] = obsertation
+            observations[step] = observation
             terminateds[step] = terminated
 
             # Get action
             with torch.no_grad():
                 action, logprob, _, value = agent.get_action_and_value(
-                    observation=obsertation
+                    observation=observation
                 )
                 values[step] = value.flatten()
 
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             observation, reward, terminated, _, info = env.step(action.cpu().numpy())
 
             rewards[step] = torch.tensor(reward).to(device).view(-1)
-            obsertation = torch.Tensor(observation).to(device)
+            observation = torch.Tensor(observation).to(device)
             terminated = torch.Tensor(terminated).to(device)
 
             # Log the reward and episodic length (below code works for multiple envs)
@@ -161,25 +161,33 @@ if __name__ == "__main__":
                         writer.add_scalar(
                             "charts/episodic_length", r["episode"]["l"], global_step
                         )
+                        print("Episodic Return:", r["episode"]["r"])
                         break
 
         # Learning phase
         with torch.no_grad():
             # Getting the GAEs
-            next_value = agent.get_value(observation=obsertation)
+            next_value = agent.get_value(observation=observation).reshape(1, -1)
             advantages = torch.zeros_like(rewards).to(device)
             last_advantage = 0
             for t in reversed(range(HYPER_PARAMS["ENV_TIMESTEPS"])):
+                if t == HYPER_PARAMS["ENV_TIMESTEPS"] - 1:
+                    next_nonterminal = 1.0 - terminated
+                    next_return = next_value
+                else:
+                    next_nonterminal = 1.0 - terminateds[t + 1]
+                    next_return = values[t + 1]
+
                 delta = (
                     rewards[t]
-                    + HYPER_PARAMS["GAE_GAMMA"] * next_value * (1 - terminateds[t])
+                    + HYPER_PARAMS["GAE_GAMMA"] * next_return * next_nonterminal
                     - values[t]
                 )
                 advantages[t] = last_advantage = (
                     delta
                     + HYPER_PARAMS["GAE_GAMMA"]
                     * HYPER_PARAMS["GAE_LAMBDA"]
-                    * (1 - terminateds[t])
+                    * next_nonterminal
                     * last_advantage
                 )
 
@@ -227,7 +235,7 @@ if __name__ == "__main__":
                     1 - HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                     1 + HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                 )
-                policy_loss = torch.min(policy_loss1, policy_loss2).mean()
+                policy_loss = - torch.min(policy_loss1, policy_loss2).mean()
                 # Clip the value loss
                 unclipped_value_loss = (
                     new_value - batch_returns[minibatch_indices]
@@ -237,7 +245,9 @@ if __name__ == "__main__":
                     -HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                     HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                 )
-                clipped_value_loss = (clipped_value - batch_returns[minibatch_indices]) ** 2
+                clipped_value_loss = (
+                    clipped_value - batch_returns[minibatch_indices]
+                ) ** 2
                 value_loss = torch.max(unclipped_value_loss, clipped_value_loss).mean()
                 entropy_loss = entropy.mean()
 
@@ -251,7 +261,9 @@ if __name__ == "__main__":
                 # Do a gradient descent
                 optimizer.zero_grad()
                 loss.backward()
-                nn.utils.clip_grad_norm_(agent.parameters(), HYPER_PARAMS["MAX_GRADIENT_NORM"])
+                nn.utils.clip_grad_norm_(
+                    agent.parameters(), HYPER_PARAMS["MAX_GRADIENT_NORM"]
+                )
                 optimizer.step()
 
         # Log some stats
@@ -270,7 +282,8 @@ if __name__ == "__main__":
         writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
         # writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
-        print("SPS:", int(global_step / (time.time() - start_time)))
+        # print("SPS:", int(global_step / (time.time() - start_time)))
+
         writer.add_scalar(
             "charts/SPS", int(global_step / (time.time() - start_time)), global_step
         )
