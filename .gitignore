@@ -1,4 +1,2 @@
 .vscode/settings.json
-wandb
-runs
-ppo.py
+venv/
