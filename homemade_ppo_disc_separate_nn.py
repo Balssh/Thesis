@@ -14,7 +14,7 @@ HYPER_PARAMS = {
     "EXPERIMENT_NAME": "homemade_ppo_disc_separate_nn",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cuda",
+    "DEVICE": "cpu",
     "LEARNING_RATE": 2.5e-04,
     "ENV_NUM": 4,
     "ENV_TIMESTEPS": 128,

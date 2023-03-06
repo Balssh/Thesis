@@ -53,7 +53,7 @@ def parse_arguments():
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda",
+        default="cpu",
         choices=["cuda", "cpu"],
         help="The device to be used: cpu or cuda(gpu)",
     )
@@ -282,7 +282,6 @@ if __name__ == "__main__":
         envs.single_action_space, gym.spaces.Discrete
     ), "Only discrete action spaces supported!"
 
-
     policy = Policy(envs).to(device)
     optimizer = optim.Adam(policy.parameters(), lr=args.learning_rate, eps=1e-05)
 
@@ -296,7 +295,6 @@ if __name__ == "__main__":
     rewards = torch.zeros((args.num_steps, args.env_num)).to(device)
     terminateds = torch.zeros((args.num_steps, args.env_num)).to(device)
     values = torch.zeros((args.num_steps, args.env_num)).to(device)
-
 
     global_step = 0
     start_time = time.time()
@@ -328,11 +326,9 @@ if __name__ == "__main__":
                 action.cpu().numpy()
             )
 
-
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_observations = torch.Tensor(next_observations).to(device)
             next_terminated = torch.Tensor(terminated).to(device)
-
 
             if "final_info" in info.keys():
                 for j, r in enumerate(info["final_info"]):
@@ -363,7 +359,11 @@ if __name__ == "__main__":
                         - values[t]
                     )
                     advantages[t] = last_gae_lambda = (
-                        delta + args.gamma * args.gae_lambda * next_nonterminal * last_gae_lambda
+                        delta
+                        + args.gamma
+                        * args.gae_lambda
+                        * next_nonterminal
+                        * last_gae_lambda
                     )
                 returns = advantages + values
             else:
@@ -443,9 +443,7 @@ if __name__ == "__main__":
                     clipped_value_loss = (
                         clipped_value - batch_returns[minibatch_indices]
                     ) ** 2
-                    max_value_loss = torch.max(
-                        unclipped_value_loss, clipped_value_loss
-                    )
+                    max_value_loss = torch.max(unclipped_value_loss, clipped_value_loss)
                     value_loss = 0.5 * max_value_loss.mean()
                 else:
                     value_loss = (
