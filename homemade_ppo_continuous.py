@@ -14,7 +14,7 @@ HYPER_PARAMS = {
     "EXPERIMENT_NAME": "homemade_ppo_disc_separate_nn",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cpu",
+    "DEVICE": "cuda",
     "LEARNING_RATE": 3e-04,
     "ENV_NUM": 1,
     "ENV_TIMESTEPS": 2048,
@@ -84,7 +84,9 @@ class Policy(nn.Module):
         )
 
         self.policy_net = nn.Sequential(
-            init_layer(nn.Linear(np.array(envs.observation_space.shape).prod(), 64)),
+            init_layer(
+                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
+            ),
             nn.Tanh(),
             init_layer(nn.Linear(64, 64)),
             nn.Tanh(),
