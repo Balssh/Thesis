@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
+from matplotlib import pyplot as plt
+from dino import Dino
 
 # Global variables
 HYPER_PARAMS = {
@@ -49,6 +51,19 @@ def make_env(gym_id, seed):
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
+        return env
+
+    return thunk
+
+
+def make_env(gym_env):
+    """Helper function for making multiple environments"""
+
+    def thunk():
+        env = gym_env
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+        # env.action_space.seed(seed)
+        # env.observation_space.seed(seed)
         return env
 
     return thunk
@@ -128,10 +143,14 @@ if __name__ == "__main__":
     # Create environments
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(HYPER_PARAMS["ENV_ID"], HYPER_PARAMS["SEED"] + i)
-            for i in range(HYPER_PARAMS["ENV_NUM"])
+            # make_env(HYPER_PARAMS["ENV_ID"], HYPER_PARAMS["SEED"] + i)
+            make_env(Dino())
+            # for i in range(HYPER_PARAMS["ENV_NUM"])
         ]
     )
+    plt.imshow(envs.reset()[0])
+    plt.show()
+    exit()
     assert isinstance(
         envs.single_action_space, gym.spaces.Discrete
     ), "Only discrete action spaces supported!"
