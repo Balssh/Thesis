@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 
 
 class Dino(gym.Env):
-    def __init__(self, screen_width: int = 120, screen_height: int = 120):
+    def __init__(self, screen_width: int = 84, screen_height: int = 84):
         # super().__init__()
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -59,7 +59,7 @@ class Dino(gym.Env):
     def _get_score(self):
         return int(
             "".join(
-                self._driver.execute_script(
+                self._web_driver.execute_script(
                     "return Runner.instance_.distanceMeter.digits"
                 )
             )
@@ -87,7 +87,7 @@ class Dino(gym.Env):
         reward = 1 if not done else -1
 
         time.sleep(0.02)
-        return observation, reward, done, {"score": self._get_score()}
+        return observation, reward, done, False, {"score": self._get_score()}
 
     # def render(self, mode: str = "human"):
     #     img = cv2.cvtColor(self._get_image(), cv2.COLOR_BGR2RGB)
