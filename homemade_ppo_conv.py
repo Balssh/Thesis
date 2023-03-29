@@ -12,15 +12,15 @@ from dino import Dino
 
 # Global variables
 HYPER_PARAMS = {
-    "ENV_ID": "CartPole-v1",
-    "EXPERIMENT_NAME": "homemade_ppo_disc_separate_nn",
+    "ENV_ID": "DinoChrome",
+    "EXPERIMENT_NAME": "homemade_ppo_conv",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cpu",
+    "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
     "LEARNING_RATE": 2.5e-04,
-    "ENV_NUM": 4,
+    "ENV_NUM": 8,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 25000,
+    "TIMESTEPS": 400000,
     "ANNEAL_LR": True,
     "USE_GAE": True,
     "MINIBATCH_NUM": 4,
@@ -30,7 +30,7 @@ HYPER_PARAMS = {
     "NORMALIZE_ADVANTAGE": True,
     "CLIP_VALUELOSS": True,
     "NORMALIZE_GRADIENTS": True,
-    "CLIPPING_COEFFICIENT": 0.2,
+    "CLIPPING_COEFFICIENT": 0.1,
     "ENTROPY_COEFFICIENT": 0.01,
     "VALUE_LOSS_COEFFICIENT": 0.5,
     "MAX_GRADIENT_NORM": 0.5,
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         [
             # make_env(HYPER_PARAMS["ENV_ID"], HYPER_PARAMS["SEED"] + i)
             make_env(Dino())
-            # for i in range(HYPER_PARAMS["ENV_NUM"])
+            for i in range(HYPER_PARAMS["ENV_NUM"])
         ]
     )
 
@@ -156,6 +156,7 @@ if __name__ == "__main__":
     global_step = 0
     start_time = time.time()
     next_obs = torch.Tensor(envs.reset()[0]).to(device)
+
     next_terminal = torch.zeros(HYPER_PARAMS["ENV_NUM"]).to(device)
     num_updates = HYPER_PARAMS["TIMESTEPS"] // HYPER_PARAMS["BATCH_SIZE"]
 
@@ -187,6 +188,9 @@ if __name__ == "__main__":
             if "final_info" in info.keys():
                 for j, r in enumerate(info["final_info"]):
                     if r is not None:
+                        print(
+                            f"Global step {global_step}: return: {r['episode']['r']}, length: {r['episode']['l']}"
+                        )
                         writer.add_scalar(
                             "charts/episodic_return", r["episode"]["r"], global_step
                         )

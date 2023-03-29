@@ -88,25 +88,3 @@ class Dino(gym.Env):
 
         time.sleep(0.02)
         return observation, reward, done, False, {"score": self._get_score()}
-
-    # def render(self, mode: str = "human"):
-    #     img = cv2.cvtColor(self._get_image(), cv2.COLOR_BGR2RGB)
-    #     if mode == "rgb_array":
-    #         return img
-    #     elif mode == "human":
-    #         from gym.Env import rendering
-
-    #         if self.viewer is None:
-    #             self.viewer = rendering.SimpleImageViewer()
-    #         self.viewer.imshow(img)
-    #         return self.viewer.isopen
-
-    # def close(self):
-    #     if self.viewer is not None:
-    #         self.viewer.close()
-    #         self.viewer = None
-
-
-# dino = Dino()
-# print(dino.reset())
-# plt.show()
