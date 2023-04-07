@@ -28,7 +28,7 @@ class Dino(gym.Env):
         self.observation_space = gym.spaces.Box(
             low=0,
             high=255,
-            shape=(1, self.screen_width, self.screen_height),
+            shape=(self.screen_width, self.screen_height),
             dtype=np.uint8,
         )
         self.actions_map = [Keys.RIGHT, Keys.UP, Keys.DOWN]
@@ -42,11 +42,12 @@ class Dino(gym.Env):
         return np.array(Image.open(BytesIO(base64.b64decode(_img))))
 
     def _get_observation(self):
-        image = cv2.cvtColor(self._get_image(), cv2.COLOR_BGR2GRAY)
+        image = cv2.cvtColor(self._get_image(), cv2.RGB2GRAY)
         # image = np.reshape(image, (3, image.shape[0], image.shape[1]))
-        image = image[:500, :480]
-        image = cv2.resize(image, (self.screen_width, self.screen_height))
-        image = np.reshape(image, (1, self.screen_width, self.screen_height))
+        # image = image[:500, :480]
+        image = cv2.resize(
+            image, (self.screen_width, self.screen_height), interpolation=cv2.INTER_AREA
+        )
         return image
 
     def _get_score(self):

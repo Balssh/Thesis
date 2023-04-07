@@ -9,7 +9,8 @@ from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from dino import Dino
-from stable_baselines3 import PPO
+
+from stable_baselines3.common.atari_wrappers import ClipRewardEnv
 
 # Global variables
 HYPER_PARAMS = {
@@ -49,7 +50,11 @@ def make_env(gym_env):
 
     def thunk():
         env = gym_env
+
         env = gym.wrappers.RecordEpisodeStatistics(env)
+        env = ClipRewardEnv(env)
+        env = gym.wrappers.GrayScaleObservation(env)
+        env = gym.wrappers.FrameStack(env, 4)
         return env
 
     return thunk
@@ -67,7 +72,7 @@ class Policy(nn.Module):
     def __init__(self, envs):
         super(Policy, self).__init__()
         self.network = nn.Sequential(
-            init_layer(nn.Conv2d(1, 32, 8, stride=4)),
+            init_layer(nn.Conv2d(4, 32, 8, stride=4)),
             nn.ReLU(),
             init_layer(nn.Conv2d(32, 64, 4, stride=2)),
             nn.ReLU(),
