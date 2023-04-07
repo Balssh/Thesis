@@ -9,6 +9,7 @@ from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from dino import Dino
+from stable_baselines3 import PPO
 
 # Global variables
 HYPER_PARAMS = {
@@ -16,11 +17,11 @@ HYPER_PARAMS = {
     "EXPERIMENT_NAME": "homemade_ppo_conv",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
+    "DEVICE": "cpu",  # "cuda" if torch.cuda.is_available() else "cpu",
     "LEARNING_RATE": 2.5e-04,
-    "ENV_NUM": 8,
+    "ENV_NUM": 1,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 400000,
+    "TIMESTEPS": 30000,
     "ANNEAL_LR": True,
     "USE_GAE": True,
     "MINIBATCH_NUM": 4,
@@ -152,7 +153,6 @@ if __name__ == "__main__":
     values = torch.zeros((HYPER_PARAMS["ENV_TIMESTEPS"], HYPER_PARAMS["ENV_NUM"])).to(
         device
     )
-
     global_step = 0
     start_time = time.time()
     next_obs = torch.Tensor(envs.reset()[0]).to(device)
@@ -168,6 +168,7 @@ if __name__ == "__main__":
             lr_now = HYPER_PARAMS["LEARNING_RATE"] * frac
             optimizer.param_groups[0]["lr"] = lr_now
 
+        oversteped = True
         # Collect trajectories
         for step in range(0, HYPER_PARAMS["ENV_TIMESTEPS"]):
             global_step += 1 * HYPER_PARAMS["ENV_NUM"]
@@ -188,6 +189,7 @@ if __name__ == "__main__":
             if "final_info" in info.keys():
                 for j, r in enumerate(info["final_info"]):
                     if r is not None:
+                        oversteped = False
                         print(
                             f"Global step {global_step}: return: {r['episode']['r']}, length: {r['episode']['l']}"
                         )
@@ -379,5 +381,9 @@ if __name__ == "__main__":
         )
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
 
-envs.close()
-writer.close()
+    torch.save(
+        policy.state_dict(),
+        f"models/{HYPER_PARAMS['ENV_ID']}_{HYPER_PARAMS['EXPERIMENT_NAME']}_{int(time.time())}.pt",
+    )
+    envs.close()
+    writer.close()

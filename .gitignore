@@ -1,4 +1,5 @@
 .vscode/settings.json
 venv/
 runs/
+models/
 __pycache__
