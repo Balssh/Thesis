@@ -16,24 +16,23 @@ def make_env(gym_env):
     def thunk():
         env = gym_env
         env = gym.wrappers.RecordEpisodeStatistics(env)
+        env = gym.wrappers.FrameStack(env, 4)
         return env
 
     return thunk
 
 
 envs = gym.vector.SyncVectorEnv([make_env(Dino())])
-model = Policy(envs).to("cpu")
+model = Policy(envs).to("cuda")
 optimizer = optim.Adam(model.parameters(), lr=2.5e-04, eps=1e-5)
 
-checkpoint = torch.load("models/DinoChrome_homemade_ppo_conv_1680193947.pt")
+checkpoint = torch.load("models/DinoChrome_homemade_ppo_conv_1681055555.pt")
 model.load_state_dict(checkpoint)
-# optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-# epoch = checkpoint["epoch"]
-# loss = checkpoint["loss"]
 model.eval()
 
-for episode in range(5):
-    obs = torch.Tensor(envs.reset()[0]).to("cpu")
+print(f"Trained model performance:")
+for episode in range(10):
+    obs = torch.Tensor(envs.reset()[0]).to("cuda")
     done = False
     total_reward = 0
     while not done:
@@ -44,8 +43,17 @@ for episode in range(5):
             _,
         ) = model.get_action_and_value(obs)
         obs, reward, done, _, info = envs.step(action.cpu().numpy())
-        obs = torch.Tensor(obs).to("cpu")
-        time.sleep(0.01)
+        obs = torch.Tensor(obs).to("cuda")
         total_reward += reward
     print("Total Reward for episode {} is {}".format(episode, total_reward))
-    time.sleep(2)
+
+print(f"Random model performance:")
+for episode in range(10):
+    obs = torch.Tensor(envs.reset()[0]).to("cuda")
+    done = False
+    total_reward = 0
+    while not done:
+        obs, reward, done, _, info = envs.step(envs.action_space.sample())
+        obs = torch.Tensor(obs).to("cuda")
+        total_reward += reward
+    print("Total Reward for episode {} is {}".format(episode, total_reward))

@@ -7,10 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-from matplotlib import pyplot as plt
 from dino import Dino
 
-from stable_baselines3.common.atari_wrappers import ClipRewardEnv
+import pprint
 
 # Global variables
 HYPER_PARAMS = {
@@ -18,11 +17,11 @@ HYPER_PARAMS = {
     "EXPERIMENT_NAME": "homemade_ppo_conv",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cpu",  # "cuda" if torch.cuda.is_available() else "cpu",
+    "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
     "LEARNING_RATE": 2.5e-04,
     "ENV_NUM": 1,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 30000,
+    "TIMESTEPS": 100000,
     "ANNEAL_LR": True,
     "USE_GAE": True,
     "MINIBATCH_NUM": 4,
@@ -52,8 +51,6 @@ def make_env(gym_env):
         env = gym_env
 
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        env = ClipRewardEnv(env)
-        env = gym.wrappers.GrayScaleObservation(env)
         env = gym.wrappers.FrameStack(env, 4)
         return env
 
@@ -129,9 +126,6 @@ if __name__ == "__main__":
         envs.single_action_space, gym.spaces.Discrete
     ), "Only discrete action spaces supported!"
 
-    # print(envs.single_action_space.n)
-    # exit()
-    # Create policy
     policy = Policy(envs).to(device)
     optimizer = optim.Adam(
         policy.parameters(), lr=HYPER_PARAMS["LEARNING_RATE"], eps=1e-5
@@ -173,7 +167,6 @@ if __name__ == "__main__":
             lr_now = HYPER_PARAMS["LEARNING_RATE"] * frac
             optimizer.param_groups[0]["lr"] = lr_now
 
-        oversteped = True
         # Collect trajectories
         for step in range(0, HYPER_PARAMS["ENV_TIMESTEPS"]):
             global_step += 1 * HYPER_PARAMS["ENV_NUM"]
@@ -185,25 +178,28 @@ if __name__ == "__main__":
 
             actions[step] = action
             log_probs[step] = log_prob
-
             next_obs, reward, next_terminal, _, info = envs.step(action.cpu().numpy())
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs = torch.Tensor(next_obs).to(device)
             next_terminal = torch.Tensor(next_terminal).to(device)
+
             # Log episode returns and lengths
             if "final_info" in info.keys():
-                for j, r in enumerate(info["final_info"]):
-                    if r is not None:
-                        oversteped = False
-                        print(
-                            f"Global step {global_step}: return: {r['episode']['r']}, length: {r['episode']['l']}"
+                mean_episodic_return = 0
+                episodes_ended = 0
+                for item in info["final_info"]:
+                    if item is not None:
+                        mean_episodic_return += item["episode"]["r"]
+                        episodes_ended += 1
+                        writer.add_scalar(
+                            "charts/episodic_return", item["episode"]["r"], global_step
                         )
                         writer.add_scalar(
-                            "charts/episodic_return", r["episode"]["r"], global_step
+                            "charts/episodic_length", item["episode"]["l"], global_step
                         )
-                        writer.add_scalar(
-                            "charts/episodic_length", r["episode"]["l"], global_step
-                        )
+                print(
+                    f"Global step: {global_step}, mean episodic return: {mean_episodic_return / episodes_ended}"
+                )
 
         # Compute advantages
         with torch.no_grad():
