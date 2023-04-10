@@ -9,8 +9,6 @@ from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from dino import Dino
 
-import pprint
-
 # Global variables
 HYPER_PARAMS = {
     "ENV_ID": "DinoChrome",
@@ -21,7 +19,7 @@ HYPER_PARAMS = {
     "LEARNING_RATE": 2.5e-04,
     "ENV_NUM": 1,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 100000,
+    "TIMESTEPS": 400000,
     "ANNEAL_LR": True,
     "USE_GAE": True,
     "MINIBATCH_NUM": 4,
