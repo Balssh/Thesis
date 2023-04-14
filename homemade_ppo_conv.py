@@ -47,9 +47,9 @@ def make_env(gym_env):
 
     def thunk():
         env = gym_env
-
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env = gym.wrappers.FrameStack(env, 4)
+
         return env
 
     return thunk
@@ -113,11 +113,7 @@ if __name__ == "__main__":
 
     # Create environments
     envs = gym.vector.SyncVectorEnv(
-        [
-            # make_env(HYPER_PARAMS["ENV_ID"], HYPER_PARAMS["SEED"] + i)
-            make_env(Dino())
-            for i in range(HYPER_PARAMS["ENV_NUM"])
-        ]
+        [make_env(Dino()) for i in range(HYPER_PARAMS["ENV_NUM"])]
     )
 
     assert isinstance(
@@ -196,7 +192,7 @@ if __name__ == "__main__":
                             "charts/episodic_length", item["episode"]["l"], global_step
                         )
                 print(
-                    f"Global step: {global_step}, mean episodic return: {mean_episodic_return / episodes_ended}"
+                    f"Global step: {global_step}, mean episodic return: {mean_episodic_return / episodes_ended}; episodes ended: {episodes_ended}"
                 )
 
         # Compute advantages

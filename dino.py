@@ -17,19 +17,20 @@ from matplotlib import pyplot as plt
 
 class Dino(gym.Env):
     def __init__(self, screen_width: int = 84, screen_height: int = 84):
-        # super().__init__()
         self.screen_width = screen_width
         self.screen_height = screen_height
-        options = Options()
-        options.page_load_strategy = "normal"
-        self._web_driver = webdriver.Chrome(options=options)
-
+        self._skip = 4
+        self._web_driver = webdriver.Chrome()
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(
             low=0,
             high=255,
             shape=(self.screen_width, self.screen_height),
             dtype=np.uint8,
+        )
+
+        self._obs_buffer = np.zeros(
+            (2,) + self.observation_space.shape, dtype=self.observation_space.dtype
         )
         self.actions_map = [Keys.RIGHT, Keys.UP, Keys.DOWN]
         self._web_driver.get("https://chromedino.com/")
@@ -72,14 +73,24 @@ class Dino(gym.Env):
         return self._get_observation(), {}
 
     def step(self, action):
-        self._web_driver.find_element(By.TAG_NAME, "body").send_keys(
-            self.actions_map[action]
-        )
-        observation = self._get_observation()
-        done = self._get_done()
-        score = self._get_score()
-        reward = 1 if score > 0 else 0
-        return observation, reward, done, False, {}
+        total_reward = 0
+
+        for i in range(self._skip):
+            self._web_driver.find_element(By.TAG_NAME, "body").send_keys(
+                self.actions_map[action]
+            )
+            observation = self._get_observation()
+            if i == self._skip - 2:
+                self._obs_buffer[0] = observation
+            if i == self._skip - 1:
+                self._obs_buffer[1] = observation
+            done = self._get_done()
+            reward = 1 if self._get_score() > 0 else 0
+            total_reward += reward
+            if done:
+                break
+        max_frame = self._obs_buffer.max(axis=0)
+        return max_frame, total_reward, done, False, {}
 
 
 # dino = Dino()
