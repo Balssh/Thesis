@@ -28,11 +28,11 @@ class Dino(gym.Env):
             shape=(self.screen_width, self.screen_height),
             dtype=np.uint8,
         )
-
         self._obs_buffer = np.zeros(
             (2,) + self.observation_space.shape, dtype=self.observation_space.dtype
         )
         self.actions_map = [Keys.RIGHT, Keys.UP, Keys.DOWN]
+        self.highest_score = 100
         self._web_driver.get("https://chromedino.com/")
         WebDriverWait(self._web_driver, 10).until(
             EC.presence_of_element_located((By.CLASS_NAME, "runner-canvas"))
@@ -55,13 +55,14 @@ class Dino(gym.Env):
         return image
 
     def _get_score(self):
-        return int(
+        score = int(
             "".join(
                 self._web_driver.execute_script(
                     "return Runner.instance_.distanceMeter.digits"
                 )
             )
         )
+        return score
 
     def _get_done(self):
         return self._web_driver.execute_script("return Runner.instance_.crashed")
@@ -73,24 +74,43 @@ class Dino(gym.Env):
         return self._get_observation(), {}
 
     def step(self, action):
-        total_reward = 0
+        # Repeating action 4 times leads to large increase in training time
+        # total_reward = 0
 
-        for i in range(self._skip):
-            self._web_driver.find_element(By.TAG_NAME, "body").send_keys(
-                self.actions_map[action]
-            )
-            observation = self._get_observation()
-            if i == self._skip - 2:
-                self._obs_buffer[0] = observation
-            if i == self._skip - 1:
-                self._obs_buffer[1] = observation
-            done = self._get_done()
-            reward = 1 if self._get_score() > 0 else 0
-            total_reward += reward
-            if done:
-                break
-        max_frame = self._obs_buffer.max(axis=0)
-        return max_frame, total_reward, done, False, {}
+        # for i in range(self._skip):
+        #     self._web_driver.find_element(By.TAG_NAME, "body").send_keys(
+        #         self.actions_map[action]
+        #     )
+        #     observation = self._get_observation()
+        #     if i == self._skip - 2:
+        #         self._obs_buffer[0] = observation
+        #     if i == self._skip - 1:
+        #         self._obs_buffer[1] = observation
+        #     done = self._get_done()
+        #     # reward = 1 if self._get_score() > 0 else 0
+        #     score = self._get_score()
+        #     if score > 0:
+        #         if score > self.highest_score:
+        #             reward = 2
+        #             self.highest_score = score
+        #         else:
+        #             reward = 1
+        #     else:
+        #         reward = 0
+        #     total_reward += reward
+        #     if done:
+        #         break
+        # max_frame = self._obs_buffer.max(axis=0)
+        # return max_frame, total_reward, done, False, {}
+        self._web_driver.find_element(By.TAG_NAME, "body").send_keys(
+            self.actions_map[action]
+        )
+        observation = self._get_observation()
+        done = self._get_done()
+        score = self._get_score()
+        reward = 1 if score > 0 else 0
+        reward = reward / 2 if action == 1 else reward  # penalize for jumping
+        return observation, reward, done, False, {"score": score}
 
 
 # dino = Dino()
