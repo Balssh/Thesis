@@ -7,40 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-from matplotlib import pyplot as plt
-from dino import Dino
-
-# Global variables
-HYPER_PARAMS = {
-    "ENV_ID": "CartPole-v1",
-    "EXPERIMENT_NAME": "homemade_ppo_disc_separate_nn",
-    "SEED": 1,
-    "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cpu",
-    "LEARNING_RATE": 2.5e-04,
-    "ENV_NUM": 4,
-    "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 25000,
-    "ANNEAL_LR": True,
-    "USE_GAE": True,
-    "MINIBATCH_NUM": 4,
-    "GAE_GAMMA": 0.99,
-    "GAE_LAMBDA": 0.95,
-    "UPDATE_EPOCHS": 4,
-    "NORMALIZE_ADVANTAGE": True,
-    "CLIP_VALUELOSS": True,
-    "NORMALIZE_GRADIENTS": True,
-    "CLIPPING_COEFFICIENT": 0.2,
-    "ENTROPY_COEFFICIENT": 0.01,
-    "VALUE_LOSS_COEFFICIENT": 0.5,
-    "MAX_GRADIENT_NORM": 0.5,
-    "TARGET_KL": 0.015,
-}
-
-HYPER_PARAMS["BATCH_SIZE"] = HYPER_PARAMS["ENV_TIMESTEPS"] * HYPER_PARAMS["ENV_NUM"]
-HYPER_PARAMS["MINIBATCH_SIZE"] = (
-    HYPER_PARAMS["BATCH_SIZE"] // HYPER_PARAMS["MINIBATCH_NUM"]
-)
+from config import HYPER_PARAMS
 
 
 def make_env(gym_id, seed):
@@ -51,19 +18,6 @@ def make_env(gym_id, seed):
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
-        return env
-
-    return thunk
-
-
-def make_env(gym_env):
-    """Helper function for making multiple environments"""
-
-    def thunk():
-        env = gym_env
-        env = gym.wrappers.RecordEpisodeStatistics(env)
-        # env.action_space.seed(seed)
-        # env.observation_space.seed(seed)
         return env
 
     return thunk
@@ -143,9 +97,8 @@ if __name__ == "__main__":
     # Create environments
     envs = gym.vector.SyncVectorEnv(
         [
-            # make_env(HYPER_PARAMS["ENV_ID"], HYPER_PARAMS["SEED"] + i)
-            make_env(Dino())
-            # for i in range(HYPER_PARAMS["ENV_NUM"])
+            make_env(HYPER_PARAMS["ENV_ID"], HYPER_PARAMS["SEED"] + i)
+            for i in range(HYPER_PARAMS["ENV_NUM"])
         ]
     )
 

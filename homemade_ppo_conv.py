@@ -8,38 +8,7 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from dino import Dino
-
-# Global variables
-HYPER_PARAMS = {
-    "ENV_ID": "DinoChrome",
-    "EXPERIMENT_NAME": "homemade_ppo_conv",
-    "SEED": 1,
-    "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cuda",  # "cuda" if torch.cuda.is_available() else "cpu",
-    "LEARNING_RATE": 2.5e-04,
-    "ENV_NUM": 1,
-    "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 400000,
-    "ANNEAL_LR": True,
-    "USE_GAE": True,
-    "MINIBATCH_NUM": 4,
-    "GAE_GAMMA": 0.99,
-    "GAE_LAMBDA": 0.7,
-    "UPDATE_EPOCHS": 4,
-    "NORMALIZE_ADVANTAGE": True,
-    "CLIP_VALUELOSS": True,
-    "NORMALIZE_GRADIENTS": True,
-    "CLIPPING_COEFFICIENT": 0.1,
-    "ENTROPY_COEFFICIENT": 0.01,
-    "VALUE_LOSS_COEFFICIENT": 0.5,
-    "MAX_GRADIENT_NORM": 0.5,
-    "TARGET_KL": 0.015,
-}
-
-HYPER_PARAMS["BATCH_SIZE"] = HYPER_PARAMS["ENV_TIMESTEPS"] * HYPER_PARAMS["ENV_NUM"]
-HYPER_PARAMS["MINIBATCH_SIZE"] = (
-    HYPER_PARAMS["BATCH_SIZE"] // HYPER_PARAMS["MINIBATCH_NUM"]
-)
+from config import HYPER_PARAMS
 
 
 def make_env(gym_env):

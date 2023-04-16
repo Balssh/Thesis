@@ -7,26 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-
-# Global variables
-HYPER_PARAMS = {
-    "ENV_ID": "CartPole-v1",
-    "EXPERIMENT_NAME": "homemade_ppo",
-    "SEED": 1,
-    "TORCH_DETERMINISTIC": True,
-    "DEVICE": "cpu",
-    "LEARNING_RATE": 2.5e-04,
-    "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 25000,
-    "MINIBATCH_NUM": 4,
-    "GAE_GAMMA": 0.99,
-    "GAE_LAMBDA": 0.95,
-    "UPDATE_EPOCHS": 4,
-    "CLIPPING_COEFFICIENT": 0.2,
-    "ENTROPY_COEFFICIENT": 0.5,
-    "VALUE_LOSS_COEFFICIENT": 0.5,
-    "MAX_GRADIENT_NORM": 0.5,
-}
+from config import HYPER_PARAMS
 
 
 class Agent(nn.Module):
@@ -235,7 +216,7 @@ if __name__ == "__main__":
                     1 - HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                     1 + HYPER_PARAMS["CLIPPING_COEFFICIENT"],
                 )
-                policy_loss = - torch.min(policy_loss1, policy_loss2).mean()
+                policy_loss = -torch.min(policy_loss1, policy_loss2).mean()
                 # Clip the value loss
                 unclipped_value_loss = (
                     new_value - batch_returns[minibatch_indices]
