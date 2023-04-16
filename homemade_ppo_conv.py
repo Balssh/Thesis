@@ -5,10 +5,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from dino import Dino
 from config import HYPER_PARAMS
+from networks import PolicyConv as Policy
 
 
 def make_env(gym_env):
@@ -22,43 +22,6 @@ def make_env(gym_env):
         return env
 
     return thunk
-
-
-def init_layer(layer, std=np.sqrt(2), bias_const=0.0):
-    """Helper function for initializing layers"""
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
-
-    return layer
-
-
-class Policy(nn.Module):
-    def __init__(self, envs):
-        super(Policy, self).__init__()
-        self.network = nn.Sequential(
-            init_layer(nn.Conv2d(4, 32, 8, stride=4)),
-            nn.ReLU(),
-            init_layer(nn.Conv2d(32, 64, 4, stride=2)),
-            nn.ReLU(),
-            init_layer(nn.Conv2d(64, 64, 3, stride=1)),
-            nn.ReLU(),
-            nn.Flatten(),
-            init_layer(nn.Linear(64 * 7 * 7, 512)),
-            nn.ReLU(),
-        )
-        self.actor = init_layer(nn.Linear(512, envs.single_action_space.n), std=0.01)
-        self.critic = init_layer(nn.Linear(512, 1), std=1)
-
-    def get_value(self, x):
-        return self.critic(self.network(x / 255.0))
-
-    def get_action_and_value(self, x, action=None):
-        hidden = self.network(x / 255.0)
-        logits = self.actor(hidden)
-        probs = Categorical(logits=logits)
-        if action is None:
-            action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
 
 
 if __name__ == "__main__":

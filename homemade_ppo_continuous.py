@@ -5,9 +5,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
 from config import HYPER_PARAMS
+from networks import PolicyContinuous as Policy
 
 
 def make_env(gym_id, seed):
@@ -26,65 +26,6 @@ def make_env(gym_id, seed):
         return env
 
     return thunk
-
-
-def init_layer(layer, std=np.sqrt(2), bias_const=0.0):
-    """Helper function for initializing layers"""
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
-
-    return layer
-
-
-class Policy(nn.Module):
-    """Policy with 2 different neural networks"""
-
-    def __init__(self, envs):
-        super(Policy, self).__init__()
-
-        self.value_net = nn.Sequential(
-            init_layer(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
-            ),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, 64)),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, 1), std=1),
-        )
-
-        self.policy_net = nn.Sequential(
-            init_layer(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
-            ),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, 64)),
-            nn.Tanh(),
-            init_layer(
-                nn.Linear(64, np.prod(envs.single_action_space.shape)), std=0.01
-            ),
-        )
-
-        self.policy_logstd = nn.Parameter(
-            torch.zeros(1, np.prod(envs.single_action_space.shape))
-        )
-
-    def get_value(self, observation):
-        return self.value_net(observation)
-
-    def get_action_and_value(self, observation, action=None):
-        action_mean = self.policy_net(observation)
-        action_logstd = self.policy_logstd.expand_as(action_mean)
-        action_std = torch.exp(action_logstd)
-        probs = Normal(action_mean, action_std)
-        if action is None:
-            action = probs.sample()
-
-        return (
-            action,
-            probs.log_prob(action).sum(1),
-            probs.entropy().sum(1),
-            self.value_net(observation),
-        )
 
 
 if __name__ == "__main__":

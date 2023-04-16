@@ -5,9 +5,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from config import HYPER_PARAMS
+from networks import PolicySeparate as Policy
 
 
 def make_env(gym_id, seed):
@@ -21,58 +21,6 @@ def make_env(gym_id, seed):
         return env
 
     return thunk
-
-
-def init_layer(layer, std=np.sqrt(2), bias_const=0.0):
-    """Helper function for initializing layers"""
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
-
-    return layer
-
-
-class Policy(nn.Module):
-    """Policy with 2 separate neural networks for actor and critic"""
-
-    def __init__(self, envs):
-        super(Policy, self).__init__()
-
-        self.critic = nn.Sequential(
-            init_layer(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
-            ),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, 64)),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, 1), std=1.0),
-        )
-
-        self.actor = nn.Sequential(
-            init_layer(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
-            ),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, 64)),
-            nn.Tanh(),
-            init_layer(nn.Linear(64, envs.single_action_space.n), std=0.01),
-        )
-
-    def get_value(self, obs):
-        """Get value from critic"""
-        return self.critic(obs)
-
-    def get_action_and_value(self, obs, action=None):
-        """Get action and value from actor and critic"""
-        action_logits = self.actor(obs)
-        action_dist = Categorical(logits=action_logits)
-        if action is None:
-            action = action_dist.sample()
-        return (
-            action,
-            action_dist.log_prob(action),
-            action_dist.entropy(),
-            self.get_value(obs),
-        )
 
 
 if __name__ == "__main__":
