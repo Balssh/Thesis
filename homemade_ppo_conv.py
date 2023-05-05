@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # Create environments
     envs = gym.vector.SyncVectorEnv(
-        [make_env(Dino()) for i in range(HYPER_PARAMS["ENV_NUM"])]
+        [make_env(Dino()) for _ in range(HYPER_PARAMS["ENV_NUM"])]
     )
 
     assert isinstance(

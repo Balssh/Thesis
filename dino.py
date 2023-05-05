@@ -1,7 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
@@ -11,8 +10,8 @@ import numpy as np
 from io import BytesIO
 from PIL import Image
 import base64
-from collections import deque
-from matplotlib import pyplot as plt
+# from collections import deque
+# from matplotlib import pyplot as plt
 
 
 class Dino(gym.Env):
