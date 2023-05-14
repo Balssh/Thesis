@@ -33,6 +33,8 @@ def make_env(gym_id, seed):
 
 if __name__ == "__main__":
     for i in range(TRAINING_ROUNDS):
+        print(f"############START OF TRAINING ROUND NO {i} ###########")
+
         run_name = f"{HYPER_PARAMS['ENV_ID']}_{HYPER_PARAMS['EXPERIMENT_NAME']}_{HYPER_PARAMS['SEED']}_{int(time.time())}"
         writer = SummaryWriter(f"runs/{run_name}")
         writer.add_text(
@@ -305,7 +307,8 @@ if __name__ == "__main__":
             writer.add_scalar(
                 "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
             )
-            print("SPS:", int(global_step / (time.time() - start_time)))
+            if global_step % 5000 == 0:
+                print("SPS:", int(global_step / (time.time() - start_time)))
             writer.add_scalar(
                 "charts/SPS", int(global_step / (time.time() - start_time)), global_step
             )
@@ -321,3 +324,4 @@ if __name__ == "__main__":
 
         envs.close()
         writer.close()
+        print(f"############END OF TRAINING ROUND NO {i} ###########")

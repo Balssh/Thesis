@@ -1,7 +1,7 @@
-# Global variables
 import torch
 
 # Config for DinoChrome
+# TODO: Change the parameters to be for DinoChrome
 HYPER_PARAMS_DINO = {
     "ENV_ID": "DinoChrome",
     "EXPERIMENT_NAME": "homemade_ppo_conv",
@@ -30,16 +30,17 @@ HYPER_PARAMS_DINO = {
 
 
 # Config for ClassicControl
+# TODO: Change the parameters to be for ClassicControl
 HYPER_PARAMS_CLASSIC = {
-    "ENV_ID": "DinoChrome",
-    "EXPERIMENT_NAME": "homemade_ppo_conv",
+    "ENV_ID": "CartPole-v1",
+    "EXPERIMENT_NAME": "homemade_ppo_separate_nn",
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
     "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
     "LEARNING_RATE": 2.5e-04,
-    "ENV_NUM": 1,
+    "ENV_NUM": 4,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 500000,
+    "TIMESTEPS": 400000,  # 400k steps to validate the results are comparable to original implementation
     "ANNEAL_LR": True,
     "USE_GAE": True,
     "MINIBATCH_NUM": 4,
@@ -57,6 +58,7 @@ HYPER_PARAMS_CLASSIC = {
 }
 
 # Config for MuJoCo
+# TODO: Change the parameters to be for MuJoCo
 HYPER_PARAMS_MUJOCO = {
     "ENV_ID": "DinoChrome",
     "EXPERIMENT_NAME": "homemade_ppo_conv",
