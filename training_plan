@@ -1,0 +1,11 @@
+Start from PPO's theoretical implementation (use CartPole as starting point)
+  -> no gradient/advantage normalization, value clipping (?)
+  -> test shared and separate hidden layers for the NNs
+  -> test GAE vs Monte-Carlo advantage estimation
+  -> fiddle arround with lamda and gamma coeficients for GAE
+With "the most optimal" setup train:
+  -> Atari Breakout
+  -> one Mujoco env
+Finally, a long run (maybe >= 1mil steps) on DinoChrome
+Train each config 10 times -> avarage the results -> maybe try each final model and avarage the results
+SAVE EACH TRAINING RUN, EACH MODEL, NAME EVERYTHING INTUITIVELY!!!

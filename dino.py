@@ -1,15 +1,17 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
-import gymnasium as gym
-import cv2
-import numpy as np
-from io import BytesIO
-from PIL import Image
 import base64
+import time
+from io import BytesIO
+
+import cv2
+import gymnasium as gym
+import numpy as np
+from PIL import Image
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 # from collections import deque
 # from matplotlib import pyplot as plt
 
@@ -21,6 +23,7 @@ class Dino(gym.Env):
         self._skip = 4
         self._web_driver = webdriver.Chrome()
         self.action_space = gym.spaces.Discrete(3)
+        self.actions_map = [Keys.RIGHT, Keys.UP, Keys.DOWN]
         self.observation_space = gym.spaces.Box(
             low=0,
             high=255,
@@ -30,7 +33,6 @@ class Dino(gym.Env):
         self._obs_buffer = np.zeros(
             (2,) + self.observation_space.shape, dtype=self.observation_space.dtype
         )
-        self.actions_map = [Keys.RIGHT, Keys.UP, Keys.DOWN]
         self.highest_score = 100
         self._web_driver.get("https://chromedino.com/")
         WebDriverWait(self._web_driver, 10).until(

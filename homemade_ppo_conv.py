@@ -1,14 +1,21 @@
-import time
 import random
+import time
+
 import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+
+from config import HYPER_PARAMS_DINO as HYPER_PARAMS
 from dino import Dino
-from config import HYPER_PARAMS
 from networks import PolicyConv as Policy
+
+HYPER_PARAMS["BATCH_SIZE"] = HYPER_PARAMS["ENV_TIMESTEPS"] * HYPER_PARAMS["ENV_NUM"]
+HYPER_PARAMS["MINIBATCH_SIZE"] = (
+    HYPER_PARAMS["BATCH_SIZE"] // HYPER_PARAMS["MINIBATCH_NUM"]
+)
 
 
 def make_env(gym_env):
