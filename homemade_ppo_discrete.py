@@ -302,13 +302,12 @@ if __name__ == "__main__":
             # - policy_loss: the mean policy loss across the minibatches
             # - value_loss: the mean value loss across the minibatches
             # - entropy_loss: the mean entropy loss across the minibatches
-            # - clipped_frac: the fraction of the minibatches where the policy loss was clipped
+            # - clippip install tensorboard-reducerped_frac: the fraction of the minibatches where the policy loss was clipped
             # - new_kl: the KL divergence between the old and new policy
             writer.add_scalar(
                 "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
             )
-            if global_step % 5000 == 0:
-                print("SPS:", int(global_step / (time.time() - start_time)))
+            print("SPS:", int(global_step / (time.time() - start_time)))
             writer.add_scalar(
                 "charts/SPS", int(global_step / (time.time() - start_time)), global_step
             )

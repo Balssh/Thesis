@@ -9,3 +9,11 @@ With "the most optimal" setup train:
 Finally, a long run (maybe >= 1mil steps) on DinoChrome
 Train each config 10 times -> avarage the results -> maybe try each final model and avarage the results
 SAVE EACH TRAINING RUN, EACH MODEL, NAME EVERYTHING INTUITIVELY!!!
+
+First test run on CartPole: shared vs separate nns => separate nns clearly outperform (other hyperparameters being
+unchanged), will only use them from now on. Other hyperparameters to consider:
+  -> ANNEAL_LR: 2 runs (1 True, 1 False)
+  -> USE_GAE: 2 runs
+  -> GAE lambda & gamma ? runs
+  -> NORMALIZE_ADVANTAGE & GRADIENT 4 runs
+  -> CLIP VALUE_LOSS 2 runs

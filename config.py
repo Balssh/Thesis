@@ -11,7 +11,7 @@ HYPER_PARAMS_DINO = {
     "LEARNING_RATE": 2.5e-04,
     "ENV_NUM": 1,
     "ENV_TIMESTEPS": 128,
-    "TIMESTEPS": 500000,
+    "TIMESTEPS": 1000000,
     "ANNEAL_LR": True,
     "USE_GAE": True,
     "MINIBATCH_NUM": 4,
@@ -33,7 +33,7 @@ HYPER_PARAMS_DINO = {
 # TODO: Change the parameters to be for ClassicControl
 HYPER_PARAMS_CLASSIC = {
     "ENV_ID": "CartPole-v1",
-    "EXPERIMENT_NAME": "homemade_ppo_separate_nn",
+    "EXPERIMENT_NAME": "homemade_ppo_separate_nn",  # TODO: remember to change names of shared/separate nns
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
     "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
