@@ -280,11 +280,11 @@ if __name__ == "__main__":
                 optimizer.step()
 
                 # Early stopping
-                if (
-                    HYPER_PARAMS["TARGET_KL"] is not None
-                    and new_kl > HYPER_PARAMS["TARGET_KL"]
-                ):
-                    break
+            if (
+                HYPER_PARAMS["TARGET_KL"] is not None
+                and new_kl > HYPER_PARAMS["TARGET_KL"]
+            ):
+                break
 
         # Calculate explained variance
         y_predict, y_true = batch_values.cpu().numpy(), batch_returns.cpu().numpy()
