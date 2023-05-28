@@ -279,7 +279,7 @@ if __name__ == "__main__":
                     )
                 optimizer.step()
 
-                # Early stopping
+            # Early stopping
             if (
                 HYPER_PARAMS["TARGET_KL"] is not None
                 and new_kl > HYPER_PARAMS["TARGET_KL"]

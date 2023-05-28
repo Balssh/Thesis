@@ -110,8 +110,8 @@ class PolicyConv(nn.Module):
     def get_value(self, x):
         return self.critic(self.network(x / 255.0))
 
-    def get_action_and_value(self, x, action=None):
-        hidden = self.network(x / 255.0)
+    def get_action_and_value(self, observation, action=None):
+        hidden = self.network(observation / 255.0)
         logits = self.actor(hidden)
         probs = Categorical(logits=logits)
         if action is None:
