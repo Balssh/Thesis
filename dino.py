@@ -109,8 +109,9 @@ class Dino(gym.Env):
         observation = self._get_observation()
         done = self._get_done()
         score = self._get_score()
-        reward = 1 * score / 100 if score > 0 else 0
-        reward = reward / 2 if action == 1 else reward  # penalize for jumping
+        # reward = 1 * score / 100 if score > 0 else 0
+        # reward = reward / 2 if action == 1 else reward  # penalize for jumping
+        reward = 1 if not done else -1
         return observation, reward, done, False, {"score": score}
 
 
