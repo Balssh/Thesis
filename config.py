@@ -33,7 +33,7 @@ HYPER_PARAMS_DINO = {
 # TODO: Change the parameters to be for ClassicControl
 HYPER_PARAMS_CLASSIC = {
     "ENV_ID": "CartPole-v1",
-    "EXPERIMENT_NAME": "homemade_ppo_separate_nn_095_GAMMA",  # TODO: remember to change names of shared/separate nns
+    "EXPERIMENT_NAME": "homemade_ppo_separate_nn_GOOD_PLAIN",  # TODO: remember to change names of shared/separate nns
     "SEED": 1,
     "TORCH_DETERMINISTIC": True,
     "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
@@ -41,15 +41,15 @@ HYPER_PARAMS_CLASSIC = {
     "ENV_NUM": 4,
     "ENV_TIMESTEPS": 128,
     "TIMESTEPS": 400000,  # 400k steps to validate the results are comparable to original implementation
-    "ANNEAL_LR": True,
-    "USE_GAE": True,
+    "ANNEAL_LR": False,
+    "USE_GAE": False,
     "MINIBATCH_NUM": 4,
     "GAE_GAMMA": 0.99,
     "GAE_LAMBDA": 0.90,
     "UPDATE_EPOCHS": 4,
-    "NORMALIZE_ADVANTAGE": True,
-    "CLIP_VALUELOSS": True,
-    "NORMALIZE_GRADIENTS": True,
+    "NORMALIZE_ADVANTAGE": False,
+    "CLIP_VALUELOSS": False,
+    "NORMALIZE_GRADIENTS": False,
     "CLIPPING_COEFFICIENT": 0.2,
     "ENTROPY_COEFFICIENT": 0.01,
     "VALUE_LOSS_COEFFICIENT": 0.5,

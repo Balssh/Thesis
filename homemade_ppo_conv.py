@@ -253,12 +253,13 @@ if __name__ == "__main__":
                         clipped_value - batch_returns[minibatch_ind]
                     ) ** 2
                     max_value_loss = torch.max(unclipped_value_loss, clipped_value_loss)
-                    # NOT SURE IF 0.5 IS CORRECT
-                    value_loss = 0.5 * max_value_loss.mean()
-                else:
-                    # NOT SURE IF 0.5 IS CORRECT
                     value_loss = (
-                        0.5 * ((new_value - batch_returns[minibatch_ind]) ** 2).mean()
+                        HYPER_PARAMS["VALUE_LOSS_COEFFICIENT"] * max_value_loss.mean()
+                    )
+                else:
+                    value_loss = (
+                        HYPER_PARAMS["VALUE_LOSS_COEFFICIENT"]
+                        * ((new_value - batch_returns[minibatch_ind]) ** 2).mean()
                     )
 
                 # Calculate entropy loss
