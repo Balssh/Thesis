@@ -3,3 +3,4 @@ venv/
 runs/
 models/
 __pycache__
+*.csv
