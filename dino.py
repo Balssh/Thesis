@@ -112,6 +112,7 @@ class Dino(gym.Env):
         # reward = 1 * score / 100 if score > 0 else 0
         # reward = reward / 2 if action == 1 else reward  # penalize for jumping
         reward = 1 if not done else -1
+        # reward = 0 if not done else score
         return observation, reward, done, False, {"score": score}
 
 
